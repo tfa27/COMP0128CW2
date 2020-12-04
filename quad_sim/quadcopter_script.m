@@ -34,7 +34,7 @@ axis vis3d
 
 
 positions = [0;0];
-num_drones = 2;
+num_drones = 1;
 count = 1;
 %instantiate a drone object, input the axis and arena limits
 drones = [];
