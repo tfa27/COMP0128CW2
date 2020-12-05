@@ -64,6 +64,8 @@ classdef Drone < handle
         %Simulation time
         time
         
+        distances
+        
         %parameter to start drone in random position
         pos_offset
         
@@ -75,7 +77,7 @@ classdef Drone < handle
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %INSTANTIATION OF CLASS
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function obj = Drone(axis, spaceDim, num_drones)
+        function obj = Drone(axis, spaceDim, num_drones, follower)
             if nargin > 1
                 obj.axis = axis;
                 
@@ -83,7 +85,9 @@ classdef Drone < handle
                 
                 obj.spaceLimits = [(-spaceDim/2)+10 (spaceDim/2)-10 (-spaceDim/2)+10 (spaceDim/2)-10 10 spaceDim-10];
                 
-                obj.pos = [0;0;0];
+                obj.pos = [follower;0;0];
+                
+                obj.distances = [0.3];
                 
                 obj.theta = zeros(3, 1); 
                 
@@ -333,7 +337,6 @@ classdef Drone < handle
             if (overall_distance < 0.25)
                 if (obj.count2 < 100)
                     obj.first_ang = obj.first_ang + 2*pi / 100;
-                    display(obj.count2)
                     obj.count2 = obj.count2 + 1;    
                 end
             end
@@ -361,32 +364,33 @@ classdef Drone < handle
             % intertia matrix
             R_mat = R_z * R_y * R_x;
             I = [I_xx 0 0; 0 I_yy 0; 0 0 I_zz];
-            
-            
             % Thrust controller
             % Control the Thrust and Torque as Inputs
             Kp1 = 15.0;%20.0;
             Kd1 = 6.0;
             Ki1 = 6.0; %6.0
-            
             % Torque controller 
             Kp2 = 10; % was 10
             Kd2 = 2;
-            
             % equilibrium points
             desired_z_pos = 2.5;
             desired_z_dot = 0;
             
             
-            point = [other_drone.pos(1); other_drone.pos(2)];
-
-            scatter(point(1), point(2));
+            if (other_drone.count2 == 100)
+                point = [0.3; 0];
+            else
+                point = [other_drone.pos(1); other_drone.pos(2)];
+            end
+            %0.21213203435
 
             diff_x = (point(1)+20) - (obj.pos(1)+20);
             diff_y = (point(2)+20) - (obj.pos(2)+20);
             
-            overall_distance = sqrt(diff_x^2 + diff_y^2);
-           
+            drone_dist = sqrt((other_drone.pos(1) - obj.pos(1))^2 + (other_drone.pos(2) - obj.pos(2))^2);
+            display(drone_dist)
+            
+            obj.distances = [obj.distances, drone_dist];
             
 
             % T_B and T_B_z are thrust in body frame, change here
@@ -396,16 +400,14 @@ classdef Drone < handle
             obj.integral_err_z_pos = integral_z_pos;
             T_B = [0; 0; T_B_z];
             
-            
             a = g + (1 / m) * (R_mat*(T_B)) - kd .* obj.xdot;
-            
 
             mid_val = diff_x;
             end_val = -diff_y;
-
-
-            t1 = 0.4 * mid_val;
-            t2 = 0.4 * end_val;
+            
+            t1 = (0.8 * mid_val);
+            t2 = (0.8 * end_val);
+           
             desired_theta = [0; t1 - 0.5 * obj.xdot(1); t2 + 0.5 * obj.xdot(2)];
 
             desired_omega = [0; 0; 0];
@@ -422,23 +424,11 @@ classdef Drone < handle
             obj.xdot = obj.xdot + obj.time_interval * a;
             obj.pos = obj.pos + obj.time_interval * obj.xdot;
             
-            if (overall_distance < 0.25)
-                if (obj.count2 < 100)
-                    obj.first_ang = obj.first_ang + 2*pi / 100;
-                    display(obj.count2)
-                    obj.count2 = obj.count2 + 1;    
-                end
-            end
-            if (obj.count2 == 100)
-                if ((obj.xdot(1)^2 + obj.xdot(2)^2) < 0.02)
-                    obj.count = obj.count + 1;
-                end
-            end
             rot_mat = eul2rotm([obj.theta(1), obj.theta(2), obj.theta(3)]);
             obj.R = rot_mat;
         end   
       
-        function update(obj)
+        function update(obj, fllo, other_drone)
             %update simulation time
             obj.time = obj.time + obj.time_interval;
             
@@ -449,19 +439,19 @@ classdef Drone < handle
                     obj.count = obj.count + 1;
                 end
             end
-%             if(fllo == 0)
-            if (obj.count == 1)
-                obj = first_move(obj);
-            elseif (obj.count == 2)
-                obj = second_move(obj);
+            if(fllo == 0)
+                if (obj.count == 1)
+                    obj = first_move(obj);
+                elseif (obj.count == 2)
+                    obj = second_move(obj);
+                end
+            elseif(fllo == 1)
+                if (obj.count == 1)
+                    obj = first_move(obj);
+                elseif (obj.count == 2)
+                    obj = fllo_move(obj, other_drone);
+                end
             end
-%             elseif(fllo == 1)
-%                 if (obj.count == 1)
-%                     obj = first_move(obj);
-%                 elseif (obj.count == 2)
-%                     obj = fllo_move(obj, other_drone);
-%                 end
-%             end
             
             %draw drone on figure
             draw(obj);

@@ -33,23 +33,23 @@ hold(ax1,'on')
 axis vis3d
 
 
-positions = [0;0];
-num_drones = 1;
+positions = [0;0;0;0];
+num_drones = 2;
 count = 1;
 %instantiate a drone object, input the axis and arena limits
 drones = [];
-for i = 1:num_drones
-    drones = [drones Drone(ax1, spaceDim, num_drones)];
-end
+drones = [drones Drone(ax1, spaceDim, num_drones, 0)];
+drones = [drones Drone(ax1, spaceDim, num_drones, 0.3)];
 
-while(drones(1).time < 100.0)
+while(drones(1).time < 55.0)
     %clear axis
     cla(ax1);
     %update and draw drones
-    for i = 1:num_drones
-        update(drones(i));
+    update(drones(1), 0, drones(2));
+    if (num_drones == 2)
+        update(drones(2), 1, drones(1));
     end
-    positions = [positions, [(drones(i).pos(1)); drones(i).pos(2)]];
+    positions = [positions, [(drones(1).pos(1)); drones(1).pos(2); drones(2).pos(1); drones(2).pos(2)]];
     
     %optionally draw the ground image
     if(draw_ground)
