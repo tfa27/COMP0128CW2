@@ -253,11 +253,21 @@ classdef Drone < handle
             % PID gains parameters for the thrust
             Kp1 = 15.0;%20.0;
             Kd1 = 6.0;
-            Ki1 = 6.0; %6.0
+            Ki1 = 6.0; %6.0    
             
             % PID gains parameters for the torques
             Kp2 = 5;
             Kd2 = 5;
+            
+            %Controller parameters for landing
+            if desired_z_pos == 0
+                Kp1 = 1;
+                Kd1 = 10;
+                Ki1 = 1;
+                Kp2 = 1;
+            	Kd2 = 1;
+                desired_z_pos = obj.pos(3) - 0.0001;
+            end
             
             % equilibrium points
             desired_z_dot = 0;
