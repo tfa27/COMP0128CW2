@@ -206,6 +206,9 @@ classdef Drone < handle
             
             evolveStates(obj, T_B, torques);
             
+            disp("Position: ")
+            disp(obj.pos);
+            
             rot_mat = eul2rotm([obj.theta(1), obj.theta(2), obj.theta(3)]);
             obj.R = rot_mat;
                     
@@ -217,11 +220,17 @@ classdef Drone < handle
             
             %When the drone is very closed to the ground, turn off the
             %thrust
-            if obj.pos(3) < 0.05
-                T_B(3) = 0;
-            end 
+            
             
             evolveStates(obj, T_B, torques);
+            
+            if obj.pos(3) < 0.005
+                T_B(3) = 0;
+                obj.pos(3) = 0;
+                obj.xdot(1) = 0;
+                obj.xdot(2) = 0;
+                obj.xdot(3) = 0;
+            end 
             
             disp("Position: ")
             disp(obj.pos);
@@ -250,6 +259,10 @@ classdef Drone < handle
             obj.theta = obj.theta + obj.time_interval * thetadot;
             obj.xdot = obj.xdot + obj.time_interval * a;
             obj.pos = obj.pos + obj.time_interval * obj.xdot;
+            
+            obj.wind = Wind(obj.xdot, obj.pos(3), obj.wind, obj.time_interval);
+            disp(obj.wind);
+            obj.xdot = obj.xdot + obj.wind;
             
             if obj.pos(3) <= 0 %So that, the drone could not penetrate into the ground, and stop when it hits the floor
                 obj.pos(3) = 0;
@@ -350,15 +363,13 @@ classdef Drone < handle
 
                 if (obj.state == 1)           
                     obj = first_move(obj);
-
                 elseif (obj.state == 2)
                     obj = second_move_circle(obj);
                 elseif (obj.state == 3)
                     obj = second_move_down(obj);
                 end
-                obj.wind = Wind(obj.xdot, obj.pos(3), obj.wind, obj.time_interval);
-                disp(obj.wind);
-                obj.xdot = obj.xdot + obj.wind;
+                
+                
             end
           
             %draw drone on figure
