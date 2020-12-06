@@ -34,6 +34,8 @@ classdef Drone < handle
         
         arm_len
         
+        circ_points
+        
         first_ang
         
         %limits of flight arena
@@ -96,6 +98,8 @@ classdef Drone < handle
                 obj.xdot = zeros(3, 1);
                 
                 obj.count2 = 1;
+                
+                obj.circ_points = [0;0];
                 
                 obj.omega = zeros(3, 1);
                 
@@ -195,7 +199,7 @@ classdef Drone < handle
             I_zz = 0.0354;
             
             m = 1.305; % mass
-            kd = 0.02; % drag constant
+            kd = 0.0464; % drag constant
             g = [0; 0; -9.8]; 
             
             R_z = [cos(obj.theta(1)), -sin(obj.theta(1)), 0; sin(obj.theta(1)), cos(obj.theta(1)), 0; 0, 0, 1];
@@ -204,17 +208,15 @@ classdef Drone < handle
             % intertia matrix
             R_mat = R_z * R_y * R_x;
             
-            
-               
             % intertia matrix
             I = [I_xx 0 0; 0 I_yy 0; 0 0 I_zz];
             
             
             % Thrust controller
             % Control the Thrust and Torque as Inputs
-            Kp1 = 15.0;%20.0;
+            Kp1 = 15.0;
             Kd1 = 15.0;
-            Ki1 = 15.0; %6.0
+            Ki1 = 15.0;
             
             % Torque controller 
             Kp2 = 5;
@@ -263,7 +265,7 @@ classdef Drone < handle
             I_zz = 0.0354;
             
             m = 1.305; % mass
-            kd = 0.01; % drag constant
+            kd = 0.0613; % drag constant
             g = [0; 0; -9.8]; 
             
             R_z = [cos(obj.theta(1)), -sin(obj.theta(1)), 0; sin(obj.theta(1)), cos(obj.theta(1)), 0; 0, 0, 1];
@@ -290,8 +292,10 @@ classdef Drone < handle
             
             
             point = [(cos(obj.first_ang) * 2.5) - 2.5; (sin(obj.first_ang) * 2.5)];
-
-            scatter(point(1), point(2));
+            
+            obj.circ_points = [obj.circ_points, [point(1);point(2)]];
+            
+%             scatter(point(1), point(2));
 
             diff_x = (point(1)+20) - (obj.pos(1)+20);
             diff_y = (point(2)+20) - (obj.pos(2)+20);
@@ -341,7 +345,7 @@ classdef Drone < handle
                 end
             end
             if (obj.count2 == 100)
-                if ((obj.xdot(1)^2 + obj.xdot(2)^2) < 0.02)
+                if ((obj.xdot(1)^2 + obj.xdot(2)^2) < 0.01)
                     obj.count = obj.count + 1;
                 end
             end
@@ -353,11 +357,10 @@ classdef Drone < handle
             I_xx = 0.0221; % arbitrary values for inertia matrix 
             I_yy = 0.0259;
             I_zz = 0.0354;
-            
+           
             m = 1.305; % mass
-            kd = 0.01; % drag constant
+            kd = 0.0613; % drag constant
             g = [0; 0; -9.8]; 
-            
             R_z = [cos(obj.theta(1)), -sin(obj.theta(1)), 0; sin(obj.theta(1)), cos(obj.theta(1)), 0; 0, 0, 1];
             R_y = [cos(obj.theta(2)), 0, sin(obj.theta(2)); 0, 1, 0; -sin(obj.theta(2)), 0, cos(obj.theta(2))];
             R_x = [1, 0, 0; 0, cos(obj.theta(3)), -sin(obj.theta(3)); 0, sin(obj.theta(3)), cos(obj.theta(3))];
@@ -376,12 +379,12 @@ classdef Drone < handle
             desired_z_pos = 2.5;
             desired_z_dot = 0;
             
-            
-            if (other_drone.count2 == 100)
+            if (obj.time > 10 && sqrt(other_drone.pos(1)^2 + other_drone.pos(2)^2) < 0.3)
                 point = [0.3; 0];
             else
                 point = [other_drone.pos(1); other_drone.pos(2)];
             end
+            
             %0.21213203435
 
             diff_x = (point(1)+20) - (obj.pos(1)+20);
@@ -427,6 +430,81 @@ classdef Drone < handle
             rot_mat = eul2rotm([obj.theta(1), obj.theta(2), obj.theta(3)]);
             obj.R = rot_mat;
         end   
+        
+        function obj = third_move(obj)
+            
+            I_xx = 0.0221; % arbitrary values for inertia matrix 
+            I_yy = 0.0259;
+            I_zz = 0.0354;
+            
+            m = 1.305; % mass
+            kd = 0.0464; % drag constant
+            g = [0; 0; -9.8]; 
+            
+            R_z = [cos(obj.theta(1)), -sin(obj.theta(1)), 0; sin(obj.theta(1)), cos(obj.theta(1)), 0; 0, 0, 1];
+            R_y = [cos(obj.theta(2)), 0, sin(obj.theta(2)); 0, 1, 0; -sin(obj.theta(2)), 0, cos(obj.theta(2))];
+            R_x = [1, 0, 0; 0, cos(obj.theta(3)), -sin(obj.theta(3)); 0, sin(obj.theta(3)), cos(obj.theta(3))];
+            % intertia matrix
+            R_mat = R_z * R_y * R_x;
+            
+            % intertia matrix
+            I = [I_xx 0 0; 0 I_yy 0; 0 0 I_zz];
+            
+            
+            % Thrust controller
+            % Control the Thrust and Torque as Inputs
+            Kp1 = 1;
+            Kd1 = 10;
+            Ki1 = 1;
+            
+            % Torque controller 
+            Kp2 = 1;
+            Kd2 = 1;
+            
+            % equilibrium points
+            desired_z_pos = obj.pos(3) - 0.0001;
+            desired_z_dot = 0;
+            desired_theta = [0; 0.4*obj.pos(1); 0.4*obj.pos(2)];
+            desired_omega = [0; 0; 0];
+            
+            % T_B and T_B_z are thrust in body frame, change here
+            integral_z_pos = obj.integral_err_z_pos + (obj.pos(3) - desired_z_pos) * obj.time_interval;
+            T_B_z = -Kp1*(obj.pos(3) - desired_z_pos) - Kd1*(obj.xdot(3) - desired_z_dot) - Ki1*integral_z_pos;
+            obj.integral_err_z_pos = integral_z_pos;
+            T_B = [0; 0; T_B_z];
+            
+            % change torque
+            torques = -Kp2*(obj.theta - desired_theta) - Kd2*(obj.omega - desired_omega); 
+            
+            
+            % Convert thrust into intertial frame 
+            a = g + 1 / m * (R_mat*(T_B)) - kd .* obj.xdot;
+            
+            % Angular acceleration
+            omegadot = inv(I) * (torques - cross(obj.omega, I * obj.omega));       
+            
+            % Change all physical parameters accordingly
+            obj.omega = obj.omega + obj.time_interval * omegadot;
+            thetadot = inv([1 0 -sin(obj.theta(2)); 0 cos(obj.theta(1)) cos(obj.theta(2))*sin(obj.theta(1)); 0 -sin(obj.theta(1)) cos(obj.theta(2))*cos(obj.theta(1))]) * obj.omega;
+            obj.theta = obj.theta + obj.time_interval * thetadot;
+            obj.xdot = obj.xdot + obj.time_interval * a;
+            if (obj.pos(3) <= 0)
+                obj.pos(3) = 0;
+                obj.xdot(1) = 0;
+                obj.xdot(2) = 0;
+                obj.xdot(3) = 0;
+                obj.theta(1) = 0;
+                obj.theta(2) = 0;
+                obj.theta(3) = 0;
+            end
+            obj.pos = obj.pos + obj.time_interval * obj.xdot;
+            disp("Position");
+            disp(obj.pos);
+            disp("Linear velocities: ")
+            disp(obj.xdot);
+            rot_mat = eul2rotm([obj.theta(1), obj.theta(2), obj.theta(3)]);
+            obj.R = rot_mat;
+        end
       
         function update(obj, fllo, other_drone)
             %update simulation time
@@ -444,15 +522,18 @@ classdef Drone < handle
                     obj = first_move(obj);
                 elseif (obj.count == 2)
                     obj = second_move(obj);
+                elseif (obj.count == 3)
+                    obj = third_move(obj);
                 end
             elseif(fllo == 1)
                 if (obj.count == 1)
                     obj = first_move(obj);
                 elseif (obj.count == 2)
                     obj = fllo_move(obj, other_drone);
+                elseif (obj.count == 3)
+                    obj = third_move(obj);
                 end
             end
-            
             %draw drone on figure
             draw(obj);
         end

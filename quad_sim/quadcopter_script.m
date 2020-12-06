@@ -14,7 +14,7 @@ spaceDim = 10;
 spaceLimits = [-spaceDim/2 spaceDim/2 -spaceDim/2 spaceDim/2 0 spaceDim/2];
 
 %do you want to draw a ground image on the figure?
-draw_ground = true;
+draw_ground = false;
 if(draw_ground)
     ground_img = imread('ground.png');
 end
@@ -33,23 +33,23 @@ hold(ax1,'on')
 axis vis3d
 
 
-positions = [0;0;0;0];
-num_drones = 2;
+positions = [0;0];
+num_drones = 1;
 count = 1;
 %instantiate a drone object, input the axis and arena limits
 drones = [];
 drones = [drones Drone(ax1, spaceDim, num_drones, 0)];
-drones = [drones Drone(ax1, spaceDim, num_drones, 0.3)];
+% drones = [drones Drone(ax1, spaceDim, num_drones, 0.3)];
 
 while(drones(1).time < 55.0)
     %clear axis
     cla(ax1);
     %update and draw drones
-    update(drones(1), 0, drones(2));
+    update(drones(1), 0, drones(1));
     if (num_drones == 2)
         update(drones(2), 1, drones(1));
     end
-    positions = [positions, [(drones(1).pos(1)); drones(1).pos(2); drones(2).pos(1); drones(2).pos(2)]];
+    positions = [positions, [(drones(1).pos(1)); drones(1).pos(2)]];
     
     %optionally draw the ground image
     if(draw_ground)
